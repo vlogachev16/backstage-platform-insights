@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backstage
+  namespace: backstage
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backstage
+  template:
+    metadata:
+      labels:
+        app: backstage
+    spec:
+      containers:
+        - name: backstage
+          image: backstage:platform-insights
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 7007
+          env:
+            - name: GHA_RUNS_PATH
+              value: /data/gha-runs.json
+          volumeMounts:
+            - name: app-config
+              mountPath: /app/app-config.production.yaml
+              subPath: app-config.production.yaml
+            - name: platform-insights-data
+              mountPath: /data
+              readOnly: true
+          readinessProbe:
+            httpGet:
+              path: /healthcheck
+              port: 7007
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthcheck
+              port: 7007
+            initialDelaySeconds: 20
+            periodSeconds: 20
+      volumes:
+        - name: app-config
+          configMap:
+            name: backstage-config
+        - name: platform-insights-data
+          configMap:
+            name: platform-insights-sample
